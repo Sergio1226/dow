@@ -1,3 +1,4 @@
+use crate::constants::SPOTIFY_URL;
 
 use reqwest::Client;
 use reqwest::header::CONTENT_TYPE;
@@ -6,9 +7,7 @@ use crate::models::spotify::PlayListData;
 use crate::service::scrap::get_tracks;
 use crate::service::utils::get_tracks_titles;
 
-const BASE_URL: &str = "https://open.spotify.com/embed/";
-
-pub struct Spotify {
+struct Spotify {
     pub client: Client,
 }
 
@@ -23,7 +22,7 @@ impl Spotify {
         &self,
         playlist_id: &str,
     ) -> Result<PlayListData, Box<dyn std::error::Error>> {
-        let url = format!("{}/playlist/{}", BASE_URL, playlist_id);
+        let url = format!("{}/playlist/{}", SPOTIFY_URL, playlist_id);
         let response = self
             .client
             .get(url)
@@ -36,11 +35,13 @@ impl Spotify {
         let body = response.text().await?;
         Ok(serde_json::from_str(&get_tracks(&body)?)?)
     }
+    
+}
 
-    pub async fn get_playlist_tracks_titles(&self, playlist_id: &str) -> Option<Vec<String>> {
-        match self.get_playlist_by_id(playlist_id).await {
-            Ok(playlist_data) => Some(get_tracks_titles(&playlist_data)),
-            Err(_) => None,
-        }
+pub async fn get_playlist_tracks_titles( playlist_id: &str) -> Option<Vec<String>> {
+    let spotify = Spotify::new();
+    match spotify.get_playlist_by_id(playlist_id).await {
+        Ok(playlist_data) => Some(get_tracks_titles(&playlist_data)),
+        Err(_) => None,
     }
 }

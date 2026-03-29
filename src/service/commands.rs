@@ -1,10 +1,13 @@
-use crate::service::spotify::Spotify;
-use std::sync::Arc;
+use crate::service::spotify::get_playlist_tracks_titles;
+use crate::service::downloader::download_audios_from_ids;
 
-pub async fn download_playlist(url: &str, output_path: &str) {
-    let spotify = Spotify::new();
+use std::path::PathBuf;
+
+
+pub async fn download_playlist(url: &str, output_path: Option<String>){
+
     let data;
-    match spotify.get_playlist_tracks_titles(url).await{
+    match get_playlist_tracks_titles(url).await{
         Some(body) => {
             data=body;
         },
@@ -13,13 +16,12 @@ pub async fn download_playlist(url: &str, output_path: &str) {
             return;
         }
     }
-    let youtube = crate::service::youtube::Youtube::new();
-    match crate::service::downloader::Downloader::new(youtube, output_path, "playlist").await{
-        Ok(downloader) => {
-            let arc=Arc::new(downloader);
-            if let Err(e) =crate::service::downloader::download_audios_from_ids(arc, data).await {
-                eprintln!("Error downloading audios: {}", e);
-            }
+
+    let path = PathBuf::from(output_path.unwrap_or_else(|| String::new()));
+     
+    match download_audios_from_ids(data, path).await{
+        Ok(()) => {
+            println!("Playlist downloaded successfully.");
         },
         Err(e) => {
             eprintln!("Error initializing downloader: {}", e);
