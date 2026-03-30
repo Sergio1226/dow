@@ -10,7 +10,6 @@ To install the `dow` program, follow these steps:
 2. Navigate to the project directory: `cd dow`
 3. Build the project: `cargo build --release`
 4. Run the binary: `./target/degub/dow.exe`
-<!-- 4. Add the binary to your PATH: `sudo cp target/release/dow /usr/local/bin` -->
 
 ## Usage
 
@@ -18,10 +17,11 @@ To use the `dow` program, run the following command:
 
 ```bash
 dow --playlist <playlist-url> --output <output-path>
+dow --p <playlist-url> --o <output-path>
 ```
 
-- `--playlist` is the URL or code of the Spotify playlist you want to download.
-- `--output` is the path where you want to save the downloaded music.
+- `--playlist` or `-p` is the URL or code of the Spotify playlist you want to download.
+- `--output` or `-p`is the path where you want to save the downloaded music.
 
 For example:
 
@@ -29,7 +29,7 @@ For example:
 dow --playlist 3gh1cUVq6xw082KmdIghwL --output /path/to/save/music
 ```
 
-## Adding a New Song
+<!-- ## Adding a New Song
 
 To add a new song to the playlist, follow these steps:
 
@@ -47,7 +47,7 @@ To add a new song to the playlist, follow these steps:
 
    ```bash
    dow add --playlist 3gh1cUVq6xw082KmdIghwL --song https://open.spotify.com/track/0a0nr0T7UuIw7oX7C9BZx6
-   ```
+   ``` -->
 
 ## Contributing
 
