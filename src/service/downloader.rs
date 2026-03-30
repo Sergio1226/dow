@@ -1,15 +1,16 @@
 #![allow(dead_code)]
-
 use crate::constants::{DOW_CACHE, MAX_DOWLOADS};
 
+use crate::service::progress::DownloadProgress;
 use crate::service::utils::format_text;
 
 use std::fs::{File, remove_dir_all};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
+use tokio::sync::Mutex;
 use zip::write::ExtendedFileOptions;
 use zip::write::FileOptions;
 use zip::write::ZipWriter;
@@ -46,31 +47,31 @@ impl Downloader {
     }
 
     ///Clean the cache of dow
-    pub fn clean_batch(&self) ->Result<(),std::io::Error>{
+    pub fn clean_batch(&self) -> Result<(), std::io::Error> {
         remove_dir_all(&self.cache)
     }
 
     pub async fn get_audios(
         &self,
         names: &[String],
+        progress: &DownloadProgress,
     ) -> Result<Vec<DownloadData>, Box<dyn std::error::Error>> {
-
         let output_cache = &self.cache;
-        self.download_batch(names).await?;
+        self.download_batch(names, progress).await?;
         let mut audios = Vec::new();
-        
+
         for entry in std::fs::read_dir(&output_cache)? {
             let entry = entry?;
             let path = entry.path();
             if path.is_file() {
                 let filename = path.file_name().unwrap().to_str().unwrap();
-                let code=filename[0..5].parse::<usize>().unwrap();
+                let code = filename[0..5].parse::<usize>().unwrap();
                 let mut file = File::open(&path)?;
                 let mut bytes = Vec::new();
                 file.read_to_end(&mut bytes)?;
                 std::fs::remove_file(&path)?;
                 audios.push(DownloadData {
-                    name: format!("{}.mp3",names[code-1].clone()),
+                    name: format!("{}.mp3", names[code - 1].clone()),
                     bytes,
                 });
             }
@@ -80,37 +81,51 @@ impl Downloader {
 
     pub async fn download_batch(
         &self,
-        names: &[String]
+        names: &[String],
+        progress: &DownloadProgress,
     ) -> Result<(), Box<dyn std::error::Error>> {
         std::fs::create_dir_all(&self.cache)?;
 
-        let mut cmd = Command::new(&self.yt_dlp);
-        cmd.args(&[
-            "--ffmpeg-location",
-            self.ffmpeg.to_str().unwrap(),
-            "--extract-audio",
-            "--audio-format",
-            "mp3",
-            "-N",
-            "5",
-            "--output",
-            &format!("{}\\%(autonumber)s.mp3", self.cache.display()),
-        ])
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null());
+        let mut child = Command::new(&self.yt_dlp)
+            .args(&[
+                "--ffmpeg-location",
+                self.ffmpeg.to_str().unwrap(),
+                "--extract-audio",
+                "--audio-format",
+                "mp3",
+                "-N",
+                "5",
+                "--output",
+                &format!("{}\\%(autonumber)s.mp3", self.cache.display()),
+            ])
+            .args(
+                names
+                    .iter()
+                    .map(|n| format!("ytsearch1:{} Official video", n)),
+            )
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .spawn()?;
 
-        for name in names {
-            cmd.arg(format!("ytsearch1:{} Official video", name ));
+        let stdout = child.stdout.take().ok_or("Error stdout")?;
+        let mut reader = BufReader::new(stdout);
+        let mut line_bytes = Vec::new();
+
+        while let Ok(n) = reader.read_until(b'\n', &mut line_bytes).await {
+            if n == 0 {
+                break;
+            }
+
+            let line = String::from_utf8_lossy(&line_bytes);
+            if line.contains("[ExtractAudio]") {
+                progress.inc(1);
+            }
+            line_bytes.clear(); 
         }
 
-        let status = cmd.status().await?;
-        if !status.success() {
-            return Err("yt-dlp failed".into());
-        }
-
+        child.wait().await?;
         Ok(())
     }
-
 }
 
 /// A struct to save the downloaded audios in a zip file
@@ -144,9 +159,9 @@ impl SaveAudio {
     fn add_to_zip(&mut self, data: &DownloadData) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(zip) = self.zip.as_mut() {
             let options: FileOptions<ExtendedFileOptions> = FileOptions::default()
-            .compression_method(zip::CompressionMethod::Stored)
-            .unix_permissions(0o755);
-        zip.start_file(&data.name, options)?;
+                .compression_method(zip::CompressionMethod::Stored)
+                .unix_permissions(0o755);
+            zip.start_file(&data.name, options)?;
             zip.write_all(&data.bytes)?;
         }
         Ok(())
@@ -174,25 +189,28 @@ pub async fn download_audios_from_ids(
         std::fs::create_dir_all(&path)?;
     }
 
+    let progress = DownloadProgress::new(ids_audios.len() as u64);
+
     let downloader = Downloader::new().await?;
-    
+
     let saver = Arc::new(Mutex::new(SaveAudio::new(path, &name)?));
 
     let saver_for_signal = Arc::clone(&saver);
     tokio::spawn(async move {
-        tokio::signal::ctrl_c().await.expect("Error al escuchar Ctrl-C");
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Error al escuchar Ctrl-C");
         println!("\nInterrupted ...");
         let mut lock = saver_for_signal.lock().await;
-        let _ = lock.close_zip(); 
+        let _ = lock.close_zip();
         std::process::exit(0);
     });
 
     for chunk in ids_audios.chunks(MAX_DOWLOADS) {
-        let results = downloader.get_audios(chunk).await?;
+        let results = downloader.get_audios(chunk, &progress).await?;
         {
             let mut lock = saver.lock().await;
             for song in results {
-                println!("Downloaded : {}", song.name);
                 lock.add_to_zip(&song)?;
             }
         }
@@ -200,5 +218,6 @@ pub async fn download_audios_from_ids(
 
     let mut final_lock = saver.lock().await;
     final_lock.close_zip()?;
+    progress.close("Download finished".into());
     Ok(())
 }
