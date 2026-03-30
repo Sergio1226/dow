@@ -1,7 +1,15 @@
 [package]
 name = "dow"
 version = "0.1.2"
-edition = "2026"
+edition = "2024"
+
+[lib]
+name = "dow"
+path = "src/lib.rs"
+
+[[bin]]
+name = "dow"
+path = "src/main.rs"
 
 [dependencies]
 reqwest = {version="0.13.2",features=["json"]}

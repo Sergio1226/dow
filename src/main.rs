@@ -1,7 +1,4 @@
-mod models;
-mod service;
-mod constants;
-
+use dow::service;
 use clap::Parser;
 
 /// A simple program to Download music from spotify
