@@ -180,7 +180,8 @@ impl SaveAudio {
 /// ### Arguments
 /// * `ids_audios` - A vector of audio IDs to download
 /// * `path` - The path where the downloaded audios will be saved
-pub async fn download_audios_from_ids(
+/// * `name` - The name of the zip 
+pub async fn download_audios_in_zip(
     ids_audios: Vec<String>,
     path: PathBuf,
     name: String,
@@ -218,6 +219,33 @@ pub async fn download_audios_from_ids(
 
     let mut final_lock = saver.lock().await;
     final_lock.close_zip()?;
+    progress.close("Download finished".into());
+    Ok(())
+}
+
+/// Download audios from a list of IDs 
+/// ### Arguments
+/// * `ids_audios` - A vector of audio IDs to download
+/// * `path` - The path where the downloaded audios will be saved
+pub async fn download_audios(
+    ids_audios: Vec<String>,
+    path: PathBuf,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if !path.exists() {
+        std::fs::create_dir_all(&path)?;
+    }
+
+    let progress = DownloadProgress::new(ids_audios.len() as u64);
+
+    let downloader = Downloader::new().await?;
+
+    for chunk in ids_audios.chunks(MAX_DOWLOADS) {
+        let results = downloader.get_audios(chunk, &progress).await?;
+        for song in results{
+            std::fs::write(format!("{}.mp3",song.name), song.bytes)?;
+        }
+    }
+
     progress.close("Download finished".into());
     Ok(())
 }

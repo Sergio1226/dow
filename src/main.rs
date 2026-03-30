@@ -12,6 +12,10 @@ struct Args {
     /// Path to save the downloaded music 
     #[arg(short, long)]
     output: Option<String>,
+
+    /// Save the music in a zip 
+    #[arg(short, long)]
+    zip: Option<bool>,
     
 }
 
@@ -19,7 +23,7 @@ struct Args {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     if let Some(url) = args.playlist {
-        let _=service::commands::download_playlist(&url, args.output).await;
+        let _=service::commands::download_playlist(&url, args.output,args.zip.unwrap_or(false)).await;
     }
     Ok(())
 }

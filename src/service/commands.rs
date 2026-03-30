@@ -1,10 +1,10 @@
 use crate::service::spotify::get_playlist_tracks_titles;
-use crate::service::downloader::download_audios_from_ids;
+use crate::service::downloader::{download_audios_in_zip,download_audios};
 
 use std::path::PathBuf;
 
 
-pub async fn download_playlist(url: &str, output_path: Option<String>){
+pub async fn download_playlist(url: &str, output_path: Option<String>,in_zip:bool){
 
     let data;
     let name;
@@ -22,13 +22,24 @@ pub async fn download_playlist(url: &str, output_path: Option<String>){
     println!("Downloading Playlist {} with {} songs",name,data.len());
 
     let path = PathBuf::from(output_path.unwrap_or_else(|| String::new()));
-     
-    match download_audios_from_ids(data, path,name).await{
-        Ok(()) => {
-            println!("Playlist downloaded successfully.");
-        },
-        Err(e) => {
-            eprintln!("Error initializing downloader: {}", e);
+
+    if in_zip{
+        match download_audios_in_zip(data, path,name).await{
+            Ok(()) => {
+                println!("Playlist downloaded successfully.");
+            },
+            Err(e) => {
+                eprintln!("Error initializing downloader: {}", e);
+            }
         }
-    }
+    }else{
+        match download_audios(data, path).await{
+            Ok(()) => {
+                println!("Playlist downloaded successfully.");
+            },
+            Err(e) => {
+                eprintln!("Error initializing downloader: {}", e);
+            }
+        }
+    }     
 }
