@@ -38,10 +38,10 @@ impl Spotify {
     
 }
 
-pub async fn get_playlist_tracks_titles( playlist_id: &str) -> Option<Vec<String>> {
+pub async fn get_playlist_tracks_titles( playlist_id: &str) -> Option<(Vec<String>,String)> {
     let spotify = Spotify::new();
     match spotify.get_playlist_by_id(playlist_id).await {
-        Ok(playlist_data) => Some(get_tracks_titles(&playlist_data)),
+        Ok(playlist_data) => Some((get_tracks_titles(&playlist_data), playlist_data.props.page_props.state.data.entity.name)),
         Err(_) => None,
     }
 }

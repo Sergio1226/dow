@@ -9,10 +9,11 @@ pub fn get_tracks_titles(playlist_data: &PlayListData) -> Vec<String> {
         .entity
         .track_list
         .iter()
-        .map(|track| format!("{} {}", format_text(&track.title), track.subtitle))
+        .map(|track| format!("{} {}", format_text(&track.title), format_text(&track.subtitle)))
         .collect()
 }
 
+/// Formats a text by removing control characters, replacing multiple spaces with a single space, and replacing special HTML entities
 pub fn format_text(text: &str) -> String {
     text.chars()
         .filter_map(|c| {
@@ -31,7 +32,7 @@ pub fn format_text(text: &str) -> String {
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
         .replace("&#39;", "'")
-        .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_")
+        .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|',' '], "_")
         .trim()
         .to_string()
 }
