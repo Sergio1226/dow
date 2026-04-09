@@ -1,6 +1,9 @@
+use std::collections::HashSet;
+
 use crate::models::spotify::PlayListData;
 
 pub fn get_tracks_titles(playlist_data: &PlayListData) -> Vec<String> {
+    let mut seen: HashSet<String> = HashSet::new();
     playlist_data
         .props
         .page_props
@@ -9,7 +12,14 @@ pub fn get_tracks_titles(playlist_data: &PlayListData) -> Vec<String> {
         .entity
         .track_list
         .iter()
-        .map(|track| format!("{} {}", format_text(&track.title), format_text(&track.subtitle)))
+        .filter_map(|track| {
+            let formatted_title = format!("{} {}", format_text(&track.title), format_text(&track.subtitle));
+            if seen.insert(formatted_title.clone()) {
+                Some(formatted_title)
+            } else {
+                None
+            }
+        })
         .collect()
 }
 
