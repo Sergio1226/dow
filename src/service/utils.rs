@@ -42,7 +42,7 @@ pub fn format_text(text: &str) -> String {
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
         .replace("&#39;", "'")
-        .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|',' '], "_")
+        .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|',' '], " ")
         .trim()
         .to_string()
 }
