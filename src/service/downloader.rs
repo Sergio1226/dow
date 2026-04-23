@@ -3,6 +3,7 @@ use crate::constants::{DOW_CACHE, MAX_DOWLOADS};
 
 use crate::service::progress::DownloadProgress;
 use crate::service::utils::format_text;
+use crate::service::libs::create_libs;
 
 use std::fs::{File, remove_dir_all};
 use std::io::{Read, Write};
@@ -30,8 +31,9 @@ struct Downloader {
 impl Downloader {
     /// Creates a new instance of Downloader
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let yt_dlp = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("lib\\yt-dlp\\yt-dlp.exe");
-        let ffmpeg = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("lib\\ffmpeg");
+        let libs_path = create_libs()?;
+        let yt_dlp = libs_path.join("yt-dlp.exe");
+        let ffmpeg = libs_path.join("ffmpeg.exe");
 
         let output_cache = std::env::temp_dir().join(DOW_CACHE);
         std::fs::create_dir_all(&output_cache)?;
@@ -85,9 +87,9 @@ impl Downloader {
         progress: &DownloadProgress,
     ) -> Result<(), Box<dyn std::error::Error>> {
         std::fs::create_dir_all(&self.cache)?;
-
+        
         let mut child = Command::new(&self.yt_dlp)
-            .args(&[
+        .args(&[
                 "--ffmpeg-location",
                 self.ffmpeg.to_str().unwrap(),
                 "--extract-audio",
@@ -97,13 +99,13 @@ impl Downloader {
                 "5",
                 "--output",
                 &format!("{}\\%(autonumber)s.mp3", self.cache.display()),
-            ])
-            .args(
-                names
+                ])
+                .args(
+                    names
                     .iter()
                     .map(|n| format!("ytsearch1:{} Official video", n)),
-            )
-            .stdout(std::process::Stdio::piped())
+                )
+                .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::null())
             .spawn()?;
 
@@ -200,8 +202,8 @@ pub async fn download_audios_in_zip(
     tokio::spawn(async move {
         tokio::signal::ctrl_c()
             .await
-            .expect("Error al escuchar Ctrl-C");
-        println!("\nInterrupted ...");
+            .expect("Error Listening Ctrl-C");
+        println!("\nInterrupted Closing Zip...");
         let mut lock = saver_for_signal.lock().await;
         let _ = lock.close_zip();
         std::process::exit(0);

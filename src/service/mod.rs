@@ -5,3 +5,4 @@ pub mod downloader;
 pub mod commands;
 pub mod progress;
 pub mod formatter;
+pub mod libs;
