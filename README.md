@@ -6,7 +6,7 @@ A simple program to download music from Spotify.
 
 To install the `dow` program, follow these steps:
 
-1. Clone the repository: `git clone https://github.com/your-username/dow.git`
+1. Clone the repository: `git clone https://github.com/Sergio1226/dow.git`
 2. Navigate to the project directory: `cd dow`
 3. Build the project: `cargo build --release`
 4. Run the binary: `./target/degub/dow.exe`
@@ -15,18 +15,26 @@ To install the `dow` program, follow these steps:
 
 To use the `dow` program, run the following command:
 
+### Sin zip
 ```bash
 dow --playlist <playlist-url> --output <output-path>
 dow --p <playlist-url> --o <output-path>
 ```
 
-- `--playlist` or `-p` is the URL or code of the Spotify playlist you want to download.
-- `--output` or `-p`is the path where you want to save the downloaded music.
+### Con zip
+```bash
+dow --playlist <playlist-url> --output <output-path> --zip
+dow --p <playlist-url> --o <output-path> -z
+```
+
+- `--playlist` or `-p` is the URL or code of the Spotify playlist you want to download
+- `--output` or `-o` is the path where you want to save the downloaded music
+- `--zip ` or `-z`tells the application to package the downloaded files into a ZIP archive 
 
 For example:
 
 ```bash
-dow --playlist 3gh1cUVq6xw082KmdIghwL --output /path/to/save/music
+dow --playlist 3gh1cUVq6xw082KmdIghwL --output /path/to/save/music -z
 ```
 
 <!-- ## Adding a New Song
