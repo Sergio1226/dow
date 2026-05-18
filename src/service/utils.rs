@@ -1,10 +1,15 @@
+use crate::models::spotify::{PlayList, PlayListData, Song, TagSong};
+use crate::service::spotify::download_image;
+
+use id3::frame::{Picture, PictureType};
+use id3::{Tag, TagLike, Version};
 use std::collections::HashSet;
+use std::path::PathBuf;
 
-use crate::models::spotify::PlayListData;
-
-pub fn get_tracks_titles(playlist_data: &PlayListData) -> Vec<String> {
+/// Converts raw playlist data into a structured PlayList format, ensuring unique track titles and proper formatting.
+pub fn raw_to_playlist(playlist_data: PlayListData) -> PlayList {
     let mut seen: HashSet<String> = HashSet::new();
-    playlist_data
+    let songs: Vec<Song> = playlist_data
         .props
         .page_props
         .state
@@ -13,14 +18,33 @@ pub fn get_tracks_titles(playlist_data: &PlayListData) -> Vec<String> {
         .track_list
         .iter()
         .filter_map(|track| {
-            let formatted_title = format!("{} {}", format_text(&track.title), format_text(&track.subtitle));
+            let formatted_title = format!(
+                "{} {}",
+                format_text(&track.title),
+                format_text(&track.subtitle)
+            );
             if seen.insert(formatted_title.clone()) {
-                Some(formatted_title)
+                Some(Song {
+                    title: formatted_title,
+                    track_id: track.uri.split(':').last().unwrap_or("").into(),
+                    ..Default::default()
+                })
             } else {
                 None
             }
         })
-        .collect()
+        .collect();
+    PlayList {
+        songs,
+        name: playlist_data
+            .props
+            .page_props
+            .state
+            .data
+            .entity
+            .name
+            .clone(),
+    }
 }
 
 /// Formats a text by removing control characters, replacing multiple spaces with a single space, and replacing special HTML entities
@@ -42,7 +66,38 @@ pub fn format_text(text: &str) -> String {
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
         .replace("&#39;", "'")
-        .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|',' '], " ")
+        .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|', ' '], " ")
         .trim()
         .to_string()
+}
+
+pub async fn save_tag(info: TagSong, path: &PathBuf) {
+    let mut tag = Tag::new();
+    tag.set_album(info.album);
+    tag.set_title(info.title);
+    tag.set_artist(info.artists);
+    tag.set_year(info.year as i32);
+    if let Some(x) = info.image
+        && let Ok(y) = download_image(&x).await
+    {
+
+
+        let data = y;
+        for pic_type in [
+            PictureType::CoverFront,
+            PictureType::Other,
+            PictureType::Artist,
+        ] {
+            let picture = Picture {
+                mime_type: "image/jpeg".to_string(),
+                picture_type: pic_type,
+                description: "cover".to_string(),
+                data: data.clone(),
+            };
+
+            tag.add_frame(picture);
+        }
+    }
+
+    tag.write_to_path(path, Version::Id3v24).unwrap();
 }

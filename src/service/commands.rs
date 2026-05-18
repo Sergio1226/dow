@@ -1,4 +1,5 @@
-use crate::service::spotify::get_playlist_tracks_titles;
+use crate::service::spotify::get_playlist;
+use crate::service::spotify::get_tags;
 use crate::service::downloader::{download_audios_in_zip,download_audios};
 use crate::service::formatter::get_playlist_id;
 
@@ -13,13 +14,13 @@ pub async fn download_playlist(url: &str, output_path: Option<String>,in_zip:boo
     }
     let data;
     let name;
-    match get_playlist_tracks_titles(playlist_id.unwrap()).await{
-        Some(body) => {
-            data=body.0;
-            name=body.1;
+    match get_playlist(playlist_id.unwrap()).await{
+        Ok(playlist) => {
+            data=playlist.songs;
+            name=playlist.name;
         },
-        None => {
-            eprintln!("Tracks not found for the provided playlist ID.");
+        Err(e) => {
+            eprintln!("Error occurred while fetching playlist: {}", e);
             return;
         }
     }
@@ -27,7 +28,7 @@ pub async fn download_playlist(url: &str, output_path: Option<String>,in_zip:boo
     println!("Downloading Playlist {} with {} songs",name,data.len());
 
     let path = PathBuf::from(output_path.unwrap_or_else(|| String::new()));
-
+    
     if in_zip{
         match download_audios_in_zip(data, path,name).await{
             Ok(()) => {

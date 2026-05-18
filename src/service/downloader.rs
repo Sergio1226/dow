@@ -2,8 +2,10 @@
 use crate::constants::{DOW_CACHE, MAX_DOWLOADS};
 
 use crate::service::progress::DownloadProgress;
-use crate::service::utils::format_text;
+use crate::service::utils::{format_text,save_tag};
 use crate::service::libs::create_libs;
+use crate::models::spotify::Song;
+use crate::service::spotify::{Spotify,get_tags};
 
 use std::fs::{File, remove_dir_all};
 use std::io::{Read, Write};
@@ -26,6 +28,7 @@ struct Downloader {
     yt_dlp: PathBuf,
     ffmpeg: PathBuf,
     cache: PathBuf,
+    spotify: Spotify,
 }
 
 impl Downloader {
@@ -43,6 +46,7 @@ impl Downloader {
             yt_dlp,
             ffmpeg,
             cache: output_cache,
+            spotify: Spotify::new(),
         };
         downloader.clean_batch().ok();
         Ok(downloader)
@@ -55,11 +59,12 @@ impl Downloader {
 
     pub async fn get_audios(
         &self,
-        names: &[String],
+        songs: &[Song],
         progress: &DownloadProgress,
     ) -> Result<Vec<DownloadData>, Box<dyn std::error::Error>> {
         let output_cache = &self.cache;
-        self.download_batch(names, progress).await?;
+        let names= songs.iter().map(|s| s.title.clone()).collect::<Vec<_>>();
+        self.download_batch(&names, progress).await?;
         let mut audios = Vec::new();
 
         for entry in std::fs::read_dir(&output_cache)? {
@@ -68,6 +73,8 @@ impl Downloader {
             if path.is_file() {
                 let filename = path.file_name().unwrap().to_str().unwrap();
                 let code = filename[0..5].parse::<usize>().unwrap();
+                let tags=get_tags(songs[code-1].track_id.as_str()).await.unwrap_or_default();
+                save_tag(tags, &path).await;
                 let mut file = File::open(&path)?;
                 let mut bytes = Vec::new();
                 file.read_to_end(&mut bytes)?;
@@ -83,7 +90,7 @@ impl Downloader {
 
     pub async fn download_batch(
         &self,
-        names: &[String],
+        names: &Vec<String>,
         progress: &DownloadProgress,
     ) -> Result<(), Box<dyn std::error::Error>> {
         std::fs::create_dir_all(&self.cache)?;
@@ -184,7 +191,7 @@ impl SaveAudio {
 /// * `path` - The path where the downloaded audios will be saved
 /// * `name` - The name of the zip 
 pub async fn download_audios_in_zip(
-    ids_audios: Vec<String>,
+    ids_audios: Vec<Song>,
     path: PathBuf,
     name: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -230,7 +237,7 @@ pub async fn download_audios_in_zip(
 /// * `ids_audios` - A vector of audio IDs to download
 /// * `path` - The path where the downloaded audios will be saved
 pub async fn download_audios(
-    ids_audios: Vec<String>,
+    ids_audios: Vec<Song>,
     path: PathBuf,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if !path.exists() {
@@ -244,7 +251,7 @@ pub async fn download_audios(
     for chunk in ids_audios.chunks(MAX_DOWLOADS) {
         let results = downloader.get_audios(chunk, &progress).await?;
         for song in results{
-            std::fs::write(format!("{}.mp3",song.name), song.bytes)?;
+            std::fs::write(format!("{}",song.name), song.bytes)?;
         }
     }
 
