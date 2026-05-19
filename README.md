@@ -30,6 +30,7 @@ dow --p <playlist-url> --o <output-path> -z
 - `--playlist` or `-p` is the URL or code of the Spotify playlist you want to download
 - `--output` or `-o` is the path where you want to save the downloaded music
 - `--zip ` or `-z`tells the application to package the downloaded files into a ZIP archive 
+- `--image ` or `-i`tells the application to save the cover image for each song  
 
 For example:
 
