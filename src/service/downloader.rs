@@ -18,6 +18,9 @@ use zip::write::ExtendedFileOptions;
 use zip::write::FileOptions;
 use zip::write::ZipWriter;
 
+
+static WITH_IMAGE:std::sync::Mutex<bool>=std::sync::Mutex::new(false);
+
 struct DownloadData {
     name: String,
     bytes: Vec<u8>,
@@ -193,7 +196,7 @@ impl SaveAudio {
 pub async fn download_audios_in_zip(
     ids_audios: Vec<Song>,
     path: PathBuf,
-    name: String,
+    name: String
 ) -> Result<(), Box<dyn std::error::Error>> {
     if !path.exists() {
         std::fs::create_dir_all(&path)?;
@@ -257,4 +260,9 @@ pub async fn download_audios(
 
     progress.close("Download finished".into());
     Ok(())
+}
+
+
+pub fn set_with_image(){
+    
 }

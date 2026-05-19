@@ -16,6 +16,10 @@ struct Args {
     /// Save the music in a zip 
     #[arg(short, long,action = clap::ArgAction::SetTrue)]
     zip: bool,
+
+    /// Add the image for songs
+    #[arg(short, long,action = clap::ArgAction::SetTrue)]
+    image: bool,
     
 }
 
@@ -23,7 +27,7 @@ struct Args {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     if let Some(url) = args.playlist {
-        let _=service::commands::download_playlist(&url, args.output,args.zip).await;
+        let _=service::commands::download_playlist(&url, args.output,args.zip,args.image).await;
     }
     Ok(())
 }

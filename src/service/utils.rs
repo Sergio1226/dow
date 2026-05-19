@@ -1,3 +1,4 @@
+use crate::globals::WITH_IMAGE;
 use crate::models::spotify::{PlayList, PlayListData, Song, TagSong};
 use crate::service::spotify::download_image;
 
@@ -77,11 +78,13 @@ pub async fn save_tag(info: TagSong, path: &PathBuf) {
     tag.set_title(info.title);
     tag.set_artist(info.artists);
     tag.set_year(info.year as i32);
-    if let Some(x) = info.image
+
+    let mut with_image = *WITH_IMAGE.lock().unwrap();
+
+    if with_image
+        && let Some(x) = info.image
         && let Ok(y) = download_image(&x).await
     {
-
-
         let data = y;
         for pic_type in [
             PictureType::CoverFront,
