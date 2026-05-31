@@ -4,7 +4,7 @@ pub const PLAYLIST_ID_LENGTH: usize = 22;
 pub const SPOTIFY_URL: &str = "https://open.spotify.com/embed/";
 pub const SPOTIFY_URL_TRACK: &str = "https://open.spotify.com/track/";
 
-pub const REPO_LIB:&str="https://github.com/Sergio1226/dow/releases/download/v0.1.2";
+pub const REPO_LIB:&str="https://github.com/Sergio1226/dow/releases/download/v0.1.5";
 
 pub const YT_DLP_BIN_WINDOWS:&str="yt-dlp.exe";
 pub const FFMPEG_BIN_WINDOWS:&str="ffmpeg.exe";
