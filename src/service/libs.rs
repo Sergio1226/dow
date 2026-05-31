@@ -68,7 +68,7 @@ pub async fn install_yt_dlp() -> std::io::Result<PathBuf> {
         }
     } else {
         println!("yt-dlp not found, Downloading... ");
-        let path = download_ffmpeg().await;
+        let path = download_yt_dlp().await;
         println!("Downloaded yt-dlp");
         Ok((path))
     }
