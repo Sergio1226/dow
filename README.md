@@ -15,16 +15,16 @@ To install the `dow` program, follow these steps:
 
 To use the `dow` program, run the following command:
 
-### Sin zip
+### Without zip
 ```bash
 dow --playlist <playlist-url> --output <output-path>
 dow --p <playlist-url> --o <output-path>
 ```
 
-### Con zip
+### With zip and image  
 ```bash
-dow --playlist <playlist-url> --output <output-path> --zip
-dow --p <playlist-url> --o <output-path> -z
+dow --playlist <playlist-url> --output <output-path> --zip --image
+dow --p <playlist-url> --o <output-path> -z -i
 ```
 
 - `--playlist` or `-p` is the URL or code of the Spotify playlist you want to download
