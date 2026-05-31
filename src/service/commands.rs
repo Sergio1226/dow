@@ -5,8 +5,9 @@ use crate::globals::WITH_IMAGE;
 
 use std::path::PathBuf;
 pub async fn download_playlist(url: &str, output_path: Option<String>,in_zip:bool,with_image:bool){
-    let mut a=WITH_IMAGE.lock().unwrap();
-    *a=with_image;
+    {
+        *WITH_IMAGE.lock().unwrap()=with_image;
+    }
     
     let playlist_id = get_playlist_id(url); 
     if playlist_id.is_none(){

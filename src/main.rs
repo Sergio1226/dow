@@ -1,6 +1,8 @@
 use dow::service;
 use clap::Parser;
 
+
+
 /// A simple program to Download music from spotify
 #[derive(Parser, Debug)]
 #[command(author, version, about, about="A simple program to Download music from spotify",long_about = None,arg_required_else_help(true))]

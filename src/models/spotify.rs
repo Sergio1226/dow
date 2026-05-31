@@ -1,4 +1,3 @@
-use id3::Tag;
 use serde::Deserialize;
 #[allow(dead_code, unused, unused_variables)]
 #[derive(Debug, Deserialize)]
@@ -9,7 +8,6 @@ pub struct TagSong {
     pub year: u32,
     pub image: Option<String>,
 }
-
 
 impl Default for TagSong {
     fn default() -> Self {

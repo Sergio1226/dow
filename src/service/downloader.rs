@@ -1,11 +1,14 @@
 #![allow(dead_code)]
-use crate::constants::{DOW_CACHE, MAX_DOWLOADS};
+use crate::constants::{ IS_WINDOWS, MAX_DOWLOADS};
 
+use crate::os::{get_cache_path, get_name_ffmpeg, get_name_yt_dlp};
 use crate::service::progress::DownloadProgress;
 use crate::service::utils::{format_text,save_tag};
 use crate::service::libs::create_libs;
 use crate::models::spotify::Song;
 use crate::service::spotify::{Spotify,get_tags};
+use crate::os::set_permissions;
+
 
 use std::fs::{File, remove_dir_all};
 use std::io::{Read, Write};
@@ -37,14 +40,25 @@ struct Downloader {
 impl Downloader {
     /// Creates a new instance of Downloader
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let libs_path = create_libs()?;
-        let yt_dlp = libs_path.join("yt-dlp.exe");
-        let ffmpeg = libs_path.join("ffmpeg.exe");
+        let libs = create_libs().await?;
+        if libs.yt_dlp.is_none() {
+            return Err("Error with yt-dlp configuration ".into());
+        }
+        if libs.ffmpeg.is_none() {
+            return Err("Error with ffmpeg configuration ".into());
+        }
+        
+        let yt_dlp = libs.yt_dlp.unwrap();
+        let ffmpeg = libs.ffmpeg.unwrap();
 
-        let output_cache = std::env::temp_dir().join(DOW_CACHE);
+        set_permissions(&yt_dlp).ok();
+        set_permissions(&ffmpeg).ok();
+
+        let mut output_cache = get_cache_path();
         std::fs::create_dir_all(&output_cache)?;
+        
+        output_cache.push("batch");
 
-        let output_cache = std::env::temp_dir().join(DOW_CACHE).join("batch");
         let downloader = Downloader {
             yt_dlp,
             ffmpeg,
@@ -97,18 +111,17 @@ impl Downloader {
         progress: &DownloadProgress,
     ) -> Result<(), Box<dyn std::error::Error>> {
         std::fs::create_dir_all(&self.cache)?;
-        
         let mut child = Command::new(&self.yt_dlp)
         .args(&[
-                "--ffmpeg-location",
-                self.ffmpeg.to_str().unwrap(),
-                "--extract-audio",
-                "--audio-format",
-                "mp3",
-                "-N",
-                "5",
-                "--output",
-                &format!("{}\\%(autonumber)s.mp3", self.cache.display()),
+            "--ffmpeg-location",
+            self.ffmpeg.to_str().unwrap(),
+            "--extract-audio",
+            "--audio-format",
+            "mp3",
+            "-N",
+            "5",
+            "--output",
+                &format!("{}{}%(autonumber)s.mp3", self.cache.display(),if IS_WINDOWS{"\\"}else{"/"},),
                 ])
                 .args(
                     names
@@ -118,11 +131,11 @@ impl Downloader {
                 .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::null())
             .spawn()?;
-
+        
         let stdout = child.stdout.take().ok_or("Error stdout")?;
         let mut reader = BufReader::new(stdout);
         let mut line_bytes = Vec::new();
-
+        
         while let Ok(n) = reader.read_until(b'\n', &mut line_bytes).await {
             if n == 0 {
                 break;
@@ -202,9 +215,10 @@ pub async fn download_audios_in_zip(
         std::fs::create_dir_all(&path)?;
     }
 
-    let progress = DownloadProgress::new(ids_audios.len() as u64);
-
+    
     let downloader = Downloader::new().await?;
+
+    let progress = DownloadProgress::new(ids_audios.len() as u64);
 
     let saver = Arc::new(Mutex::new(SaveAudio::new(path, &name)?));
 
@@ -247,9 +261,10 @@ pub async fn download_audios(
         std::fs::create_dir_all(&path)?;
     }
 
-    let progress = DownloadProgress::new(ids_audios.len() as u64);
-
+    
     let downloader = Downloader::new().await?;
+    
+    let progress = DownloadProgress::new(ids_audios.len() as u64);
 
     for chunk in ids_audios.chunks(MAX_DOWLOADS) {
         let results = downloader.get_audios(chunk, &progress).await?;
@@ -260,9 +275,4 @@ pub async fn download_audios(
 
     progress.close("Download finished".into());
     Ok(())
-}
-
-
-pub fn set_with_image(){
-    
 }

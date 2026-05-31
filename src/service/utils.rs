@@ -79,8 +79,10 @@ pub async fn save_tag(info: TagSong, path: &PathBuf) {
     tag.set_artist(info.artists);
     tag.set_year(info.year as i32);
 
-    let mut with_image = *WITH_IMAGE.lock().unwrap();
-
+    let mut with_image = false;
+    {
+        with_image = *WITH_IMAGE.lock().unwrap();
+    }
     if with_image
         && let Some(x) = info.image
         && let Ok(y) = download_image(&x).await
